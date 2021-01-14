@@ -15,9 +15,9 @@ RANDOM_SEED = 1234
 
 CONFIG = {
     'batch-size' : 100,
-    'epoch' : 10,
+    'epoch' : 100,
     'lr' : 1e-2,
-    'report' : 1,
+    'report' : 20,
     'num_of_in_features' : 10,
     'num_of_out_features' : 1,
 }
@@ -27,7 +27,7 @@ class NeuralNet(nn.Module):
         super(NeuralNet, self).__init__()
         self.fc1 = nn.Linear(in_features=CONFIG['num_of_in_features'], out_features=CONFIG['num_of_out_features'], bias=True)
         
-        with torch.no_grad(): # TODO
+        with torch.no_grad(): # Grad Tracking Stop
             self.fc1.weight = torch.nn.Parameter(torch.normal(mean=RND_MEAN,std=RND_STD, size=(1, 10)))
             self.fc1.bias = torch.nn.Parameter(torch.zeros((1)))
     
@@ -90,8 +90,7 @@ def train_and_test():
         val_acc = 1 - np.mean(val_acc)
 
         if (e+1) % CONFIG['report'] == 0:
-            print(f"[epoch {e+1}] loss: {train_loss}, train_acc: {train_acc}")
-            print(f"\t\t val_loss: {val_loss}, val_acc: {val_acc}")
+            report(e, train_loss, train_acc, val_loss, val_acc)
 
 
 if __name__ == '__main__':
