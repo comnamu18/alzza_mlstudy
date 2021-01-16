@@ -28,8 +28,8 @@ class NeuralNet(nn.Module):
         self.fc1 = nn.Linear(in_features=CONFIG['num_of_in_features'], out_features=CONFIG['num_of_out_features'], bias=True)
         
         with torch.no_grad(): # Grad Tracking Stop
-            self.fc1.weight = torch.nn.Parameter(torch.normal(mean=RND_MEAN,std=RND_STD, size=(1, 10)))
-            self.fc1.bias = torch.nn.Parameter(torch.zeros((1)))
+            self.fc1.weight = torch.nn.Parameter(torch.normal(mean=RND_MEAN,std=RND_STD, size=(CONFIG['num_of_out_features'], CONFIG['num_of_in_features'])))
+            self.fc1.bias = torch.nn.Parameter(torch.zeros((CONFIG['num_of_out_features'])))
     
     def forward(self, x): 
         return self.fc1(x)
