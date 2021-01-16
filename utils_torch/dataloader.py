@@ -27,3 +27,38 @@ class AbaloneDataset(Dataset):
         
     def __len__(self):  
         return len(self.csv)
+
+
+class PulsarDataset(Dataset):
+    def __init__(self, csv):
+        self.csv = csv
+    
+    def __getitem__(self, idx):
+        if torch.is_tensor(idx):
+            idx = idx.tolist()
+        
+        label = torch.tensor(self.csv.iloc[idx][-1], dtype=torch.float32)
+        value = torch.tensor(self.csv.iloc[idx][:-1].to_list(), dtype=torch.float32)
+    
+        return {'label' : label, 'value' : value}
+        
+    def __len__(self):        
+        return len(self.csv)
+
+
+class SteelPlateDataset(Dataset):
+    def __init__(self, csv):
+        self.csv = csv
+    
+    def __getitem__(self, idx):
+        if torch.is_tensor(idx):
+            idx = idx.tolist()
+        
+        label = torch.tensor(self.csv.iloc[idx][-7:].to_list, dtype=np.float32)
+        _, label = torch.max(label, 0) 
+        value = torch.tensor(self.csv.iloc[idx][:-7].to_list, dtype=np.float32)
+        
+        return {'label' : label, 'value' : value}
+        
+    def __len__(self):        
+        return len(self.csv)
