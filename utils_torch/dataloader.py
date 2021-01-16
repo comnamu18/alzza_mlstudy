@@ -71,9 +71,8 @@ class SteelPlateDataset(Dataset):
         if torch.is_tensor(idx):
             idx = idx.tolist()
         
-        label = torch.tensor(self.csv.iloc[idx][-7:].to_list, dtype=np.float32)
-        _, label = torch.max(label, 0) 
-        value = torch.tensor(self.csv.iloc[idx][:-7].to_list, dtype=np.float32)
+        label = torch.tensor(self.csv.iloc[idx][-7:].to_list(), dtype=torch.float32)
+        value = torch.tensor(self.csv.iloc[idx][:-7].to_list(), dtype=torch.float32)
         
         return {'label' : label, 'value' : value}
         
@@ -82,9 +81,9 @@ class SteelPlateDataset(Dataset):
 
 
 if __name__ == '__main__':
-    csv = pd.read_csv("../chap02/pulsar_stars.csv")
-    # data = PulsarDataset(csv)
-    # print(len(data))
+    csv = pd.read_csv("../chap03/faults.csv")
+    data = PulsarDataset(csv)
+    print(len(data))
 
-    data = PulsarDataset(csv, True)
+    # data = PulsarDataset(csv, True)
     # print(len(data))
