@@ -126,13 +126,20 @@ def eval_acc(pred, gt):
     FP = np.sum(np.logical_and(est_true, gt_false))
     FN = np.sum(np.logical_and(est_false, gt_true))
     
-    accuracy = (TP + TN) / (TP + TN + FP + FN)
-    precision = TP / (TP + FP)
-    recall = TP / (TP + FN)
+    accuracy = safe_div((TP + TN), (TP + TN + FP + FN))
+    precision = safe_div(TP, (TP + FP))
+    recall = safe_div(TP, (TP + FN))
 
-    f1_score = 2*precision*recall / (precision+recall)
+    f1_score = safe_div(2*precision*recall, (precision+recall))
 
     return accuracy, precision, recall, f1_score
+
+
+def safe_div(p, q):
+    p, q = map(float, (p, q))
+    if np.abs(q) < 1.0e-20: return np.sign(p)
+    return p / q
+
 
 if __name__ == '__main__':
     set_seed(123)
