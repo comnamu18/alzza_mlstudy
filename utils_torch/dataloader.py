@@ -29,10 +29,27 @@ class AbaloneDataset(Dataset):
         return len(self.csv)
 
 
+def extend_data(csv):
+    csv.sort_values(csv.columns.to_list()[-1:], axis=0, inplace=True, ignore_index=True)
+    star_cnt = 0
+
+    for i in range(len(csv)):
+        if csv.iloc[i][-1] > 0 :
+            break
+        star_cnt += 1
+    
+    pulsar_cnt = len(csv) - star_cnt
+
+    for idx in range(star_cnt - pulsar_cnt):
+        csv = csv.append(csv.iloc[star_cnt + idx % pulsar_cnt], ignore_index=True)
+    
+    return csv
+
+
 class PulsarDataset(Dataset):
     def __init__(self, csv):
         self.csv = csv
-    
+
     def __getitem__(self, idx):
         if torch.is_tensor(idx):
             idx = idx.tolist()
@@ -62,3 +79,12 @@ class SteelPlateDataset(Dataset):
         
     def __len__(self):        
         return len(self.csv)
+
+
+if __name__ == '__main__':
+    csv = pd.read_csv("../chap02/pulsar_stars.csv")
+    # data = PulsarDataset(csv)
+    # print(len(data))
+
+    data = PulsarDataset(csv, True)
+    # print(len(data))
