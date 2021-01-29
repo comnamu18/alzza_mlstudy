@@ -2,6 +2,8 @@ import sys
 sys.path.append('../utils_torch')
 from utils import *
 from dataloader import *
+import argparse
+from torchsummary import summary
 
 import torch.nn as nn
 from torch.utils.data import DataLoader
@@ -17,25 +19,25 @@ RANDOM_SEED = 1234
 
 CONFIG = {
     'batch-size' : 128,
-    'epoch' : 10,
-    'lr' : 1e-5,
-    'report' : 1,
+    'epoch' : 50,
+    'lr' : 1e-3,
+    'report' : 10,
     'num_of_in_features' : 27,
     'num_of_out_features' : 7,
 }
 
 class NeuralNet(nn.Module):
-    def __init__(self):
+    def __init__(self, args):
         super(NeuralNet, self).__init__()
-        self.net =  nn.Sequential(
-            nn.Linear(in_features=CONFIG['num_of_in_features'], out_features=12, bias=True),
-            nn.ReLU(),
-            nn.Linear(in_features=12, out_features=6, bias=True),
-            nn.ReLU(),
-            nn.Linear(in_features=6, out_features=4, bias=True),
-            nn.ReLU(),
-            nn.Linear(in_features=4, out_features=CONFIG['num_of_out_features'], bias=True),
-        )
+        modules = []
+        prev = CONFIG['num_of_in_features']        
+        for h in args.hidden:
+            modules.append(nn.Linear(in_features=prev, out_features=h, bias=True))
+            modules.append(nn.ReLU())
+            prev = h
+        modules.append(nn.Linear(in_features=prev, out_features=CONFIG['num_of_out_features'], bias=True))
+
+        self.net = nn.Sequential(*modules)
         
         # initialize weight and bias
         for layer in self.net:
@@ -47,7 +49,7 @@ class NeuralNet(nn.Module):
         return self.net(x)
 
 
-def train_and_test():
+def train_and_test(model, args):
     csv = pd.read_csv("../chap03/faults.csv")
     csv = extend_data(csv)
     train_csv, test_csv = train_test_split(csv, test_size=0.2)
@@ -58,10 +60,8 @@ def train_and_test():
     train_loader = DataLoader(train_data, batch_size=CONFIG['batch-size'], shuffle=True, drop_last=True)
     test_loader = DataLoader(test_data, batch_size=len(test_data), shuffle=False, drop_last=False)
     
-    model = NeuralNet().cuda()
     optimizer = SGD(model.parameters(), lr=CONFIG['lr'], momentum=0.9)
     criterion = nn.CrossEntropyLoss()
-    # criterion = nn.NLLLoss()
 
     for e in range(CONFIG['epoch']):
         train_metric = []
@@ -70,18 +70,10 @@ def train_and_test():
         for i, data in enumerate(train_loader):
             x = data['value'].cuda()
             y = data['label'].cuda()
-            # print(x.shape)
-            # print(y)
             y = torch.argmax(y, dim=1)
-            # print(y)
-            # quit()
 
             pred = model(x)
-            # print(pred)
-            # quit()             
             loss = criterion(pred, y)
-            # print(loss)
-            # quit()
             train_loss.append(loss.item())
 
             optimizer.zero_grad()
@@ -124,5 +116,16 @@ def train_and_test():
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--hidden', type=str, default=None)
+    args = parser.parse_args()
+
+    if args.hidden is None:
+        args.hidden = []
+    else:
+        args.hidden = [int(h.strip()) for h in args.hidden.split(',')]
+
     set_seed(123)
-    train_and_test()
+    model = NeuralNet(args).cuda()
+    summary(model, input_size=(CONFIG['num_of_in_features'],))
+    train_and_test(model, args)

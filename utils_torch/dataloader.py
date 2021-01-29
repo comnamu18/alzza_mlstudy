@@ -1,7 +1,13 @@
 import torch
 import numpy as np
 import pandas as pd
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, DataLoader
+from torch.utils.data.sampler import SubsetRandomSampler, SequentialSampler
+from torchvision import transforms
+import torchvision.transforms.functional as TF
+
+import os
+from PIL import Image
 
 class AbaloneDataset(Dataset):
     def __init__(self, csv):
@@ -80,10 +86,63 @@ class SteelPlateDataset(Dataset):
         return len(self.csv)
 
 
+class FlowerDataset(Dataset):
+    def __init__(self, resolution=(100,100), input_shape=(-1,), transform=None):
+        base_dir = '../chap05/flowers'
+        self.resolution = resolution
+        self.input_shape = input_shape
+        self.output_shape = 1
+
+        self.label = []
+        self.img = []
+
+        self.class_map = {}
+
+        for c_id, c in enumerate(self._listdir(base_dir)):
+            self.class_map[c_id] = c
+            for d in os.listdir(os.path.join(base_dir, c)):
+                if d[-3:] != 'jpg':
+                    continue
+                
+                read_img = Image.open(os.path.join(base_dir, c, d))
+                read_img = read_img.resize(self.resolution)
+
+                read_img = transforms.ToTensor()(read_img)
+                read_img = torch.flatten(read_img)
+
+                self.img.append(read_img)
+                self.label.append(int(c_id))
+
+    def __getitem__(self, idx):
+        return {'x': self.img[idx], 'y': self.label[idx]}
+    
+    def __len__(self):
+        return len(self.img)
+    
+    def _listdir(self, path):
+        return sorted(os.listdir(path))
+
+
+
 if __name__ == '__main__':
-    csv = pd.read_csv("../chap03/faults.csv")
-    data = PulsarDataset(csv)
-    print(len(data))
+    import random
+    # csv = pd.read_csv("../chap03/faults.csv")
+    fdata = FlowerDataset()
+    n_fdata = len(fdata)
+    split = int(n_fdata * 0.8)
+    print(split)
+    indices = list(range(n_fdata))
+    # random.shuffle(indices)
+
+    train_sampler = SubsetRandomSampler(indices[:split])
+    validation_sampler = SubsetRandomSampler(indices[split:])
+    
+    train_loader = DataLoader(fdata, batch_size=8, sampler=train_sampler)
+
+    for data in train_loader:
+        print(data['y'])
+
+    # print(list(dloader))
 
     # data = PulsarDataset(csv, True)
     # print(len(data))
