@@ -8,11 +8,13 @@ from torchvision import transforms
 import random
 
 import sys
-sys.path.append('../utils_torch')
+
+sys.path.append("../utils_torch")
 from utils import *
 from dataloader import *
 from network import *
 from config import *
+
 
 def train_and_test(model, train_loader, validation_loader, args):
     optimizer = SGD(model.parameters(), lr=args.lr, momentum=0.9)
@@ -23,8 +25,8 @@ def train_and_test(model, train_loader, validation_loader, args):
         train_loss = []
         model.train()
         for i, data in enumerate(train_loader):
-            x = data['x'].cuda()
-            y = data['y'].cuda()
+            x = data["x"].cuda()
+            y = data["y"].cuda()
 
             pred = model(x)
             loss = criterion(pred, y)
@@ -35,7 +37,7 @@ def train_and_test(model, train_loader, validation_loader, args):
             loss.backward()
             optimizer.step()
 
-            # 1. 직접계산 
+            # 1. 직접계산
             output = pred.detach()
             output = torch.argmax(output, dim=1)
             acc = torch.where(output == y, 1, 0).sum().item() / y.size(0)
@@ -48,15 +50,15 @@ def train_and_test(model, train_loader, validation_loader, args):
         val_loss = []
         model.eval()
         for i, data in enumerate(validation_loader):
-            x = data['x'].cuda()
-            y = data['y'].cuda()
+            x = data["x"].cuda()
+            y = data["y"].cuda()
 
             pred = model(x)
 
             loss = criterion(pred, y)
             val_loss.append(loss.item())
-            
-            # 1. 직접계산 
+
+            # 1. 직접계산
             output = pred.detach()
             output = torch.argmax(output, dim=1)
 
@@ -69,11 +71,32 @@ def train_and_test(model, train_loader, validation_loader, args):
         val_loss = np.mean(val_loss)
         val_metric = np.mean(val_metric, axis=0)
 
-        if (e+1) % args.report == 0:
+        if (e + 1) % args.report == 0:
             report(e, train_loss, train_metric, val_loss, val_metric)
 
 
-if __name__ == '__main__':
+def visualize(model, fdata, idx):
+    sample = fdata[idx]
+    x = sample["x"].cuda()
+    y = sample["y"]
+
+    pred = model(x)
+    pred = pred.detach().cpu()
+    output = torch.argmax(pred)
+
+    ans = y
+    est = output.item()
+
+    iscorrect = "X"
+    if ans == est:
+        iscorrect = "O"
+
+    print(
+        f"추정확률 분포 {F.softmax(pred).numpy()} => 추청 {fdata.get_class_name(est)} : 정답 {fdata.get_class_name(ans)} => {iscorrect}"
+    )
+
+
+if __name__ == "__main__":
     args = flower_mlp_config()
 
     fdata = FlowerDataset()
@@ -84,9 +107,11 @@ if __name__ == '__main__':
 
     train_sampler = SubsetRandomSampler(indices[:split])
     validation_sampler = SubsetRandomSampler(indices[split:])
-    
+
     train_loader = DataLoader(fdata, batch_size=args.batchsize, sampler=train_sampler)
-    validation_loader = DataLoader(fdata, batch_size=args.batchsize, sampler=validation_sampler)
+    validation_loader = DataLoader(
+        fdata, batch_size=args.batchsize, sampler=validation_sampler
+    )
 
     set_seed(args.seed)
     model = mlp(args).cuda()
@@ -94,5 +119,8 @@ if __name__ == '__main__':
 
     train_and_test(model, train_loader, validation_loader, args)
 
-
-
+    if args.visualize:
+        print("\n", "#" * 20, "VISUALIZE", "#" * 20)
+        for _ in range(args.visualize):
+            idx = random.randint(0, n_fdata)
+            visualize(model, fdata, idx)
