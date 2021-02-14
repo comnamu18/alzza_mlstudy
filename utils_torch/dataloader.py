@@ -113,6 +113,9 @@ class FlowerDataset(Dataset):
                 self.img.append(read_img)
                 self.label.append(int(c_id))
 
+        # print(self.class_map)
+        # print(self.class_map[0])
+
     def __getitem__(self, idx):
         return {'x': self.img[idx], 'y': self.label[idx]}
     
@@ -122,27 +125,73 @@ class FlowerDataset(Dataset):
     def _listdir(self, path):
         return sorted(os.listdir(path))
 
+    def get_class_name(self, class_id):
+        return self.class_map[class_id]
 
+
+class Office31Dataset(Dataset):
+    def __init__(self, resolution=(100,100), input_shape=(-1,)):
+        super(Office31Dataset, self).__init__()
+        base_dir = '../chap06/office31'
+        self.resolution = resolution
+
+        self.label = []
+        self.img = []
+        self.label0 = []
+        self.label1 = []
+
+        self.domain_map = {}
+        self.class_map = {}
+        self.domain_cnt = 3
+        self.class_cnt = 31
+
+        for d_id, domain in enumerate(self._listdir(base_dir)):
+            self.domain_map[domain] = d_id
+            domain_dir = os.path.join(base_dir, domain, 'images')
+            for c_id, c in enumerate(self._listdir(domain_dir)):
+                self.class_map[c] = c_id
+                class_dir = os.path.join(domain_dir, c)
+                for img in self._listdir(class_dir):
+                    if img[-4:] != '.jpg':
+                        continue
+                    
+                    read_img = Image.open(os.path.join(class_dir, img))
+                    read_img = read_img.resize(self.resolution)
+
+                    # read_img = torch.Tensor(np.array(read_img))
+                    read_img = transforms.ToTensor()(read_img)
+                    read_img = torch.flatten(read_img)
+
+                    self.label0.append(d_id)
+                    self.label1.append(c_id)
+                    self.img.append(read_img)
+
+        self.map = [self.domain_map, self.class_map]
+
+    def __getitem__(self, idx):
+        return {'x': self.img[idx], 'domain': self.label0[idx], 'category': self.label1[idx]}
+
+    def __len__(self):
+        return len(self.img)
+    
+    def _listdir(self, path):
+        return sorted(os.listdir(path))
+
+    # def _onehot(self, c_id, length):
+    #     return np.eye(length)[np.array(c_id).astype(int)]
 
 if __name__ == '__main__':
     import random
-    # csv = pd.read_csv("../chap03/faults.csv")
-    fdata = FlowerDataset()
+    fdata = Office31Dataset()
     n_fdata = len(fdata)
     split = int(n_fdata * 0.8)
-    print(split)
     indices = list(range(n_fdata))
-    # random.shuffle(indices)
 
     train_sampler = SubsetRandomSampler(indices[:split])
     validation_sampler = SubsetRandomSampler(indices[split:])
     
-    train_loader = DataLoader(fdata, batch_size=8, sampler=train_sampler)
+    train_loader = DataLoader(fdata, batch_size=1, sampler=train_sampler)
 
     for data in train_loader:
-        print(data['y'])
-
-    # print(list(dloader))
-
-    # data = PulsarDataset(csv, True)
-    # print(len(data))
+        print(data['x'])
+        break

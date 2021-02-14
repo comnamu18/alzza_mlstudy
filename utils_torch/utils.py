@@ -16,5 +16,10 @@ def set_seed(seed : int):
 
 
 def report(epoch, t_loss, t_metric, v_loss, v_metric):
-    print(f"[epoch {epoch+1}] loss: {t_loss}, train_acc: {t_metric}")
-    print(f"              val_loss: {v_loss}, val_acc: {v_metric}")
+    print(f"[epoch {epoch+1}] loss: {t_loss:.4f}, train_acc: {t_metric}")
+    print(f"       val_loss: {v_loss:.4f},   val_acc: {v_metric}")
+
+
+
+
+
